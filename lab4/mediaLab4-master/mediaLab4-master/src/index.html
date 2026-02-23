@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>WebRTC Lab4 - Video Filter</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background: #f0f0f0;
+        }
+        h1 {
+            color: #333;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        video {
+            width: 100%;
+            max-width: 640px;
+            border: 2px solid #333;
+            border-radius: 5px;
+        }
+        canvas {
+            width: 100%;
+            max-width: 640px;
+            border: 2px solid #333;
+            border-radius: 5px;
+            display: none;
+        }
+        .controls {
+            margin: 20px 0;
+        }
+        .control-group {
+            margin: 15px 0;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input[type="range"] {
+            width: 100%;
+            max-width: 400px;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            margin: 5px;
+            cursor: pointer;
+            background: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+        }
+        button:hover {
+            background: #45a049;
+        }
+        .value-display {
+            display: inline-block;
+            margin-left: 10px;
+            font-weight: bold;
+            color: #4CAF50;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>WebRTC Lab4 - Video Filter Application</h1>
+        
+        <video id="video" autoplay playsinline></video>
+        <canvas id="canvas"></canvas>
+        
+        <div class="controls">
+            <button id="startBtn">Start Camera</button>
+            <button id="stopBtn">Stop Camera</button>
+            
+            <div class="control-group">
+                <label>Select Filter:</label>
+                <button onclick="setFilter('none')">No Filter</button>
+                <button onclick="setFilter('grayscale')">Grayscale</button>
+                <button onclick="setFilter('blur')">Blur</button>
+                <button onclick="setFilter('brightness')">Brightness</button>
+                <button onclick="setFilter('contrast')">Contrast</button>
+            </div>
+            
+            <div class="control-group">
+                <label for="intensitySlider">
+                    Filter Intensity: <span class="value-display" id="intensityValue">50</span>%
+                </label>
+                <input type="range" id="intensitySlider" min="0" max="100" value="50">
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const video = document.getElementById('video');
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const startBtn = document.getElementById('startBtn');
+        const stopBtn = document.getElementById('stopBtn');
+        const intensitySlider = document.getElementById('intensitySlider');
+        const intensityValue = document.getElementById('intensityValue');
+        
+        let stream = null;
+        let currentFilter = 'none';
+        let intensity = 50;
+        
+        // Update intensity value display
+        intensitySlider.addEventListener('input', function() {
+            intensity = this.value;
+            intensityValue.textContent = intensity;
+        });
+        
+        // Start camera
+        startBtn.addEventListener('click', async function() {
+            try {
+                stream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { width: 640, height: 480 } 
+                });
+                video.srcObject = stream;
+                video.style.display = 'block';
+                canvas.style.display = 'none';
+                
+                // Setup canvas
+                video.addEventListener('loadedmetadata', function() {
+                    canvas.width = video.videoWidth;
+                    canvas.height = video.videoHeight;
+                });
+                
+                applyFilter();
+            } catch (err) {
+                alert('Error accessing camera: ' + err.message);
+            }
+        });
+        
+        // Stop camera
+        stopBtn.addEventListener('click', function() {
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+                video.srcObject = null;
+                video.style.display = 'none';
+                canvas.style.display = 'none';
+            }
+        });
+        
+        // Set filter type
+        function setFilter(filterType) {
+            currentFilter = filterType;
+            if (filterType === 'none') {
+                video.style.display = 'block';
+                canvas.style.display = 'none';
+            } else {
+                video.style.display = 'none';
+                canvas.style.display = 'block';
+            }
+        }
+        
+        // Apply filter continuously
+        function applyFilter() {
+            if (stream && currentFilter !== 'none') {
+                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                let imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                let data = imageData.data;
+                
+                switch(currentFilter) {
+                    case 'grayscale':
+                        applyGrayscale(data);
+                        break;
+                    case 'blur':
+                        applyBlur(imageData);
+                        break;
+                    case 'brightness':
+                        applyBrightness(data);
+                        break;
+                    case 'contrast':
+                        applyContrast(data);
+                        break;
+                }
+                
+                ctx.putImageData(imageData, 0, 0);
+            }
+            requestAnimationFrame(applyFilter);
+        }
+        
+        // Grayscale filter
+        function applyGrayscale(data) {
+            const factor = intensity / 100;
+            for (let i = 0; i < data.length; i += 4) {
+                const gray = (data[i] + data[i + 1] + data[i + 2]) / 3;
+                data[i] = data[i] * (1 - factor) + gray * factor;
+                data[i + 1] = data[i + 1] * (1 - factor) + gray * factor;
+                data[i + 2] = data[i + 2] * (1 - factor) + gray * factor;
+            }
+        }
+        
+        // Blur filter (simple box blur)
+        function applyBlur(imageData) {
+            const blurAmount = Math.floor(intensity / 10);
+            if (blurAmount < 1) return;
+            
+            const data = imageData.data;
+            const width = imageData.width;
+            const height = imageData.height;
+            const tempData = new Uint8ClampedArray(data);
+            
+            for (let y = blurAmount; y < height - blurAmount; y++) {
+                for (let x = blurAmount; x < width - blurAmount; x++) {
+                    let r = 0, g = 0, b = 0, count = 0;
+                    
+                    for (let dy = -blurAmount; dy <= blurAmount; dy++) {
+                        for (let dx = -blurAmount; dx <= blurAmount; dx++) {
+                            const i = ((y + dy) * width + (x + dx)) * 4;
+                            r += tempData[i];
+                            g += tempData[i + 1];
+                            b += tempData[i + 2];
+                            count++;
+                        }
+                    }
+                    
+                    const i = (y * width + x) * 4;
+                    data[i] = r / count;
+                    data[i + 1] = g / count;
+                    data[i + 2] = b / count;
+                }
+            }
+        }
+        
+        // Brightness filter
+        function applyBrightness(data) {
+            const adjustment = (intensity - 50) * 2.55;
+            for (let i = 0; i < data.length; i += 4) {
+                data[i] += adjustment;
+                data[i + 1] += adjustment;
+                data[i + 2] += adjustment;
+            }
+        }
+        
+        // Contrast filter
+        function applyContrast(data) {
+            const factor = (259 * (intensity + 255)) / (255 * (259 - intensity));
+            for (let i = 0; i < data.length; i += 4) {
+                data[i] = factor * (data[i] - 128) + 128;
+                data[i + 1] = factor * (data[i + 1] - 128) + 128;
+                data[i + 2] = factor * (data[i + 2] - 128) + 128;
+            }
+        }
+    </script>
+</body>
+</html>

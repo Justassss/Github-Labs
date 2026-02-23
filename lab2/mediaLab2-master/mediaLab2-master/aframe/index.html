@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Lab2 - VR application</title>
+    <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+  </head>
+  <body>
+    <a-scene>
+      <a-assets>
+        <img id="groundTexture" src="https://cdn.aframe.io/a-painter/images/floor.jpg">
+        <img id="skyTexture" src="https://cdn.aframe.io/a-painter/images/sky.jpg">
+      </a-assets>
+
+      <a-plane src="#groundTexture" rotation="-90 0 0" height="100" width="100"></a-plane>
+      <a-light type="ambient" color="#445451"></a-light>
+      <a-light type="point" intensity="2" position="2 4 4"></a-light>
+      <a-sky height="2048" radius="30" src="#skyTexture" theta-length="90" width="2048"></a-sky>
+
+      <a-sphere id="model" position="0 1.5 -3" radius="1" color="#4CC3D9"></a-sphere>
+    </a-scene>
+
+    <div style="position:fixed; bottom:20px; left:50%; transform:translateX(-50%); z-index:999;">
+      <button onclick="rotateLeft()">Rotate Left</button>
+      <button onclick="rotateRight()">Rotate Right</button>
+      <button onclick="zoomIn()">Zoom In</button>
+      <button onclick="zoomOut()">Zoom Out</button>
+      <button onclick="moveUp()">Move Up</button>
+      <button onclick="moveDown()">Move Down</button>
+    </div>
+
+    <script>
+      var rotationY = 0;
+      var scaleVal = 1;
+      var posY = 1.5;
+
+      function rotateLeft() {
+        rotationY -= 15;
+        document.getElementById('model').setAttribute('rotation', '0 ' + rotationY + ' 0');
+      }
+
+      function rotateRight() {
+        rotationY += 15;
+        document.getElementById('model').setAttribute('rotation', '0 ' + rotationY + ' 0');
+      }
+
+      function zoomIn() {
+        scaleVal += 0.2;
+        document.getElementById('model').setAttribute('scale', scaleVal + ' ' + scaleVal + ' ' + scaleVal);
+      }
+
+      function zoomOut() {
+        if (scaleVal > 0.2) scaleVal -= 0.2;
+        document.getElementById('model').setAttribute('scale', scaleVal + ' ' + scaleVal + ' ' + scaleVal);
+      }
+
+      function moveUp() {
+        posY += 0.3;
+        document.getElementById('model').setAttribute('position', '0 ' + posY + ' -3');
+      }
+
+      function moveDown() {
+        posY -= 0.3;
+        document.getElementById('model').setAttribute('position', '0 ' + posY + ' -3');
+      }
+    </script>
+  </body>
+</html>
