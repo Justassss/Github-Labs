@@ -18,50 +18,101 @@
       <a-sky height="2048" radius="30" src="#skyTexture" theta-length="90" width="2048"></a-sky>
 
       <a-sphere id="model" position="0 1.5 -3" radius="1" color="#4CC3D9"></a-sphere>
-    </a-scene>
 
-    <div style="position:fixed; bottom:20px; left:50%; transform:translateX(-50%); z-index:999;">
-      <button onclick="rotateLeft()">Rotate Left</button>
-      <button onclick="rotateRight()">Rotate Right</button>
-      <button onclick="zoomIn()">Zoom In</button>
-      <button onclick="zoomOut()">Zoom Out</button>
-      <button onclick="moveUp()">Move Up</button>
-      <button onclick="moveDown()">Move Down</button>
-    </div>
+      <!-- VR Control Panel -->
+      <a-entity id="controlPanel" position="0 1.5 -2">
+        <!-- Rotate Left Button -->
+        <a-box position="-1.5 0.5 0" width="0.6" height="0.3" depth="0.1" color="#FF6B6B" 
+               class="clickable" data-action="rotateLeft">
+          <a-text value="Rotate Left" align="center" position="0 0 0.06" scale="0.5 0.5 0.5" color="#000"></a-text>
+        </a-box>
+
+        <!-- Rotate Right Button -->
+        <a-box position="-0.8 0.5 0" width="0.6" height="0.3" depth="0.1" color="#4ECDC4" 
+               class="clickable" data-action="rotateRight">
+          <a-text value="Rotate Right" align="center" position="0 0 0.06" scale="0.5 0.5 0.5" color="#000"></a-text>
+        </a-box>
+
+        <!-- Zoom In Button -->
+        <a-box position="0.8 0.5 0" width="0.6" height="0.3" depth="0.1" color="#95E1D3" 
+               class="clickable" data-action="zoomIn">
+          <a-text value="Zoom In" align="center" position="0 0 0.06" scale="0.5 0.5 0.5" color="#000"></a-text>
+        </a-box>
+
+        <!-- Zoom Out Button -->
+        <a-box position="1.5 0.5 0" width="0.6" height="0.3" depth="0.1" color="#F38181" 
+               class="clickable" data-action="zoomOut">
+          <a-text value="Zoom Out" align="center" position="0 0 0.06" scale="0.5 0.5 0.5" color="#000"></a-text>
+        </a-box>
+
+        <!-- Move Up Button -->
+        <a-box position="-0.4 0 0" width="0.6" height="0.3" depth="0.1" color="#AA96DA" 
+               class="clickable" data-action="moveUp">
+          <a-text value="Move Up" align="center" position="0 0 0.06" scale="0.5 0.5 0.5" color="#000"></a-text>
+        </a-box>
+
+        <!-- Move Down Button -->
+        <a-box position="0.4 0 0" width="0.6" height="0.3" depth="0.1" color="#FCBAD3" 
+               class="clickable" data-action="moveDown">
+          <a-text value="Move Down" align="center" position="0 0 0.06" scale="0.5 0.5 0.5" color="#000"></a-text>
+        </a-box>
+      </a-entity>
+
+      <!-- Camera with cursor for clicking -->
+      <a-camera position="0 1.6 0">
+        <a-cursor color="#FFFFFF" fuse="true" fuse-timeout="1500"></a-cursor>
+      </a-camera>
+    </a-scene>
 
     <script>
       var rotationY = 0;
       var scaleVal = 1;
       var posY = 1.5;
+      var model = null;
 
-      function rotateLeft() {
-        rotationY -= 15;
-        document.getElementById('model').setAttribute('rotation', '0 ' + rotationY + ' 0');
-      }
+      // Wait for scene to load
+      document.querySelector('a-scene').addEventListener('loaded', function() {
+        model = document.getElementById('model');
+        
+        // Add click handlers to all buttons
+        var buttons = document.querySelectorAll('.clickable');
+        buttons.forEach(function(button) {
+          button.addEventListener('click', function() {
+            var action = this.getAttribute('data-action');
+            handleAction(action);
+          });
+        });
+      });
 
-      function rotateRight() {
-        rotationY += 15;
-        document.getElementById('model').setAttribute('rotation', '0 ' + rotationY + ' 0');
-      }
+      function handleAction(action) {
+        if (!model) return;
 
-      function zoomIn() {
-        scaleVal += 0.2;
-        document.getElementById('model').setAttribute('scale', scaleVal + ' ' + scaleVal + ' ' + scaleVal);
-      }
-
-      function zoomOut() {
-        if (scaleVal > 0.2) scaleVal -= 0.2;
-        document.getElementById('model').setAttribute('scale', scaleVal + ' ' + scaleVal + ' ' + scaleVal);
-      }
-
-      function moveUp() {
-        posY += 0.3;
-        document.getElementById('model').setAttribute('position', '0 ' + posY + ' -3');
-      }
-
-      function moveDown() {
-        posY -= 0.3;
-        document.getElementById('model').setAttribute('position', '0 ' + posY + ' -3');
+        switch(action) {
+          case 'rotateLeft':
+            rotationY -= 15;
+            model.setAttribute('rotation', '0 ' + rotationY + ' 0');
+            break;
+          case 'rotateRight':
+            rotationY += 15;
+            model.setAttribute('rotation', '0 ' + rotationY + ' 0');
+            break;
+          case 'zoomIn':
+            scaleVal += 0.2;
+            model.setAttribute('scale', scaleVal + ' ' + scaleVal + ' ' + scaleVal);
+            break;
+          case 'zoomOut':
+            if (scaleVal > 0.2) scaleVal -= 0.2;
+            model.setAttribute('scale', scaleVal + ' ' + scaleVal + ' ' + scaleVal);
+            break;
+          case 'moveUp':
+            posY += 0.3;
+            model.setAttribute('position', '0 ' + posY + ' -3');
+            break;
+          case 'moveDown':
+            posY -= 0.3;
+            model.setAttribute('position', '0 ' + posY + ' -3');
+            break;
+        }
       }
     </script>
   </body>
