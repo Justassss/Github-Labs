@@ -2,182 +2,71 @@
 <html>
 <head>
     <meta charset="UTF-8">
-    <title>Lab5 - Server (Video Sender)</title>
+    <title>Lab5 - WebRTC Video Streaming</title>
     <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
         body {
             font-family: Arial, sans-serif;
-            max-width: 800px;
-            margin: 50px auto;
-            padding: 20px;
-            background: #f5f5f5;
+            background: #2c3e50;
+            color: white;
+        }
+        .header {
+            background: #34495e;
+            padding: 15px;
+            text-align: center;
+            border-bottom: 3px solid #3498db;
         }
         .container {
-            background: white;
-            padding: 30px;
-            border-radius: 10px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            display: flex;
+            height: calc(100vh - 60px);
         }
-        h1 {
-            color: #333;
-            border-bottom: 3px solid #4CAF50;
-            padding-bottom: 10px;
+        .panel {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            border-right: 2px solid #34495e;
         }
-        video {
-            width: 100%;
-            max-width: 640px;
-            border: 2px solid #ddd;
-            border-radius: 5px;
-            margin: 20px 0;
+        .panel:last-child {
+            border-right: none;
         }
-        button {
-            background: #4CAF50;
-            color: white;
-            border: none;
-            padding: 12px 24px;
-            font-size: 16px;
-            border-radius: 5px;
-            cursor: pointer;
-            margin: 5px;
-        }
-        button:hover {
-            background: #45a049;
-        }
-        button:disabled {
-            background: #ccc;
-            cursor: not-allowed;
-        }
-        textarea {
-            width: 100%;
-            height: 150px;
-            margin: 10px 0;
-            padding: 10px;
-            border: 2px solid #ddd;
-            border-radius: 5px;
-            font-family: monospace;
-            font-size: 12px;
-        }
-        .step {
-            background: #e8f5e9;
+        .panel-header {
+            background: #34495e;
             padding: 15px;
-            margin: 15px 0;
-            border-left: 4px solid #4CAF50;
-            border-radius: 3px;
-        }
-        .status {
-            padding: 10px;
-            margin: 10px 0;
-            border-radius: 5px;
+            text-align: center;
             font-weight: bold;
+            font-size: 18px;
         }
-        .status.waiting {
-            background: #fff3cd;
-            color: #856404;
+        .panel-header.server {
+            background: #27ae60;
         }
-        .status.connected {
-            background: #d4edda;
-            color: #155724;
+        .panel-header.client {
+            background: #3498db;
+        }
+        iframe {
+            flex: 1;
+            border: none;
+            background: white;
         }
     </style>
 </head>
 <body>
+    <div class="header">
+        <h1>Lab5 - WebRTC Video Streaming Demo</h1>
+        <p style="margin-top:5px; font-size:14px;">Server captures video, Client receives and displays it</p>
+    </div>
     <div class="container">
-        <h1>Lab5 Server - Video Sender</h1>
-        
-        <div class="step">
-            <h3>Step 1: Start Camera</h3>
-            <button id="startBtn" onclick="startCamera()">Start Camera</button>
-            <video id="localVideo" autoplay muted playsinline></video>
+        <div class="panel">
+            <div class="panel-header server">SERVER (Video Sender)</div>
+            <iframe src="server.html"></iframe>
         </div>
-
-        <div class="step">
-            <h3>Step 2: Create Offer</h3>
-            <button id="createOfferBtn" onclick="createOffer()" disabled>Create Offer</button>
-            <div class="status waiting" id="status">Camera not started</div>
-            <textarea id="offerText" placeholder="Offer SDP will appear here..." readonly></textarea>
-        </div>
-
-        <div class="step">
-            <h3>Step 3: Paste Answer from Client</h3>
-            <textarea id="answerText" placeholder="Paste the answer SDP from client here..."></textarea>
-            <button id="setAnswerBtn" onclick="setAnswer()" disabled>Set Answer</button>
+        <div class="panel">
+            <div class="panel-header client">CLIENT (Video Receiver)</div>
+            <iframe src="client.html"></iframe>
         </div>
     </div>
-
-    <script>
-        let localStream = null;
-        let peerConnection = null;
-        const config = {
-            iceServers: [
-                { urls: 'stun:stun.l.google.com:19302' },
-                { urls: 'stun:stun1.l.google.com:19302' }
-            ]
-        };
-
-        async function startCamera() {
-            try {
-                localStream = await navigator.mediaDevices.getUserMedia({ 
-                    video: true, 
-                    audio: true 
-                });
-                document.getElementById('localVideo').srcObject = localStream;
-                document.getElementById('createOfferBtn').disabled = false;
-                document.getElementById('status').textContent = 'Camera started! Now create an offer.';
-                document.getElementById('status').className = 'status waiting';
-            } catch (err) {
-                alert('Error accessing camera: ' + err.message);
-            }
-        }
-
-        async function createOffer() {
-            try {
-                peerConnection = new RTCPeerConnection(config);
-
-                // Add tracks to peer connection
-                localStream.getTracks().forEach(track => {
-                    peerConnection.addTrack(track, localStream);
-                });
-
-                // Handle ICE candidates
-                peerConnection.onicecandidate = event => {
-                    if (event.candidate === null) {
-                        // All ICE candidates have been gathered
-                        document.getElementById('offerText').value = 
-                            JSON.stringify(peerConnection.localDescription);
-                        document.getElementById('setAnswerBtn').disabled = false;
-                        document.getElementById('status').textContent = 
-                            'Offer created! Copy it and send to client.';
-                    }
-                };
-
-                // Create and set offer
-                const offer = await peerConnection.createOffer();
-                await peerConnection.setLocalDescription(offer);
-
-                document.getElementById('createOfferBtn').disabled = true;
-                document.getElementById('status').textContent = 'Generating offer...';
-            } catch (err) {
-                alert('Error creating offer: ' + err.message);
-            }
-        }
-
-        async function setAnswer() {
-            try {
-                const answerText = document.getElementById('answerText').value.trim();
-                if (!answerText) {
-                    alert('Please paste the answer from client first!');
-                    return;
-                }
-
-                const answer = JSON.parse(answerText);
-                await peerConnection.setRemoteDescription(new RTCSessionDescription(answer));
-                
-                document.getElementById('status').textContent = '✅ Connected! Client should see your video.';
-                document.getElementById('status').className = 'status connected';
-                document.getElementById('setAnswerBtn').disabled = true;
-            } catch (err) {
-                alert('Error setting answer: ' + err.message);
-            }
-        }
-    </script>
 </body>
 </html>
